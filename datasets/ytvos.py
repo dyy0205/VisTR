@@ -36,28 +36,107 @@ class YTVOSDataset:
         for idx, vid_info in enumerate(self.vid_infos):
             for frame_id in range(len(vid_info['filenames'])):
                 self.img_ids.append((idx, frame_id))
+
+    # def __len__(self):
+    #     return len(self.img_ids)
+    #
+    # def __getitem__(self, idx):
+    #     vid,  frame_id = self.img_ids[idx]
+    #     vid_id = self.vid_infos[vid]['id']
+    #     img = []
+    #     vid_len = len(self.vid_infos[vid]['file_names'])
+    #     inds = list(range(self.num_frames))
+    #     inds = [i%vid_len for i in inds][::-1]
+    #     # if random
+    #     # random.shuffle(inds)
+    #     for j in range(self.num_frames):
+    #         img_path = os.path.join(str(self.img_folder), self.vid_infos[vid]['file_names'][frame_id-inds[j]])
+    #         img.append(Image.open(img_path).convert('RGB'))
+    #     ann_ids = self.ytvos.getAnnIds(vidIds=[vid_id])
+    #     target = self.ytvos.loadAnns(ann_ids)
+    #     target = {'image_id': idx, 'video_id': vid, 'frame_id': frame_id, 'annotations': target}
+    #     target = self.prepare(img[0], target, inds, self.num_frames)
+    #     if self._transforms is not None:
+    #         img, target = self._transforms(img, target)
+    #     return torch.cat(img,dim=0), target
+
     def __len__(self):
-        return len(self.img_ids)
+        return len(self.vid_infos)
 
     def __getitem__(self, idx):
-        vid,  frame_id = self.img_ids[idx]
-        vid_id = self.vid_infos[vid]['id']
+        vid_info = self.vid_infos[idx]
+        vid_id = vid_info['id']
+        h = vid_info['height']
+        w = vid_info['width']
+        vid_len = len(vid_info['file_names'])
+        if vid_len > self.num_frames:
+            start_frame = random.choice(range(vid_len - self.num_frames))
+            end_frame = start_frame + self.num_frames
+            inds = list(range(start_frame, end_frame))
+        else:
+            inds = list(range(vid_len))
+            inds.extend(inds[::-1][1:self.num_frames - vid_len + 1])
+
+        if random.choice([0, 1]):
+            inds = inds[::-1]
+
         img = []
-        vid_len = len(self.vid_infos[vid]['file_names'])
-        inds = list(range(self.num_frames))
-        inds = [i%vid_len for i in inds][::-1]
-        # if random 
-        # random.shuffle(inds)
-        for j in range(self.num_frames):
-            img_path = os.path.join(str(self.img_folder), self.vid_infos[vid]['file_names'][frame_id-inds[j]])
+        for i in inds:
+            img_path = os.path.join(str(self.img_folder), vid_info['file_names'][i])
             img.append(Image.open(img_path).convert('RGB'))
         ann_ids = self.ytvos.getAnnIds(vidIds=[vid_id])
-        target = self.ytvos.loadAnns(ann_ids)
-        target = {'image_id': idx, 'video_id': vid, 'frame_id': frame_id, 'annotations': target}
-        target = self.prepare(img[0], target, inds, self.num_frames)
+        anno = self.ytvos.loadAnns(ann_ids)
+
+        boxes = []
+        classes = []
+        segmentations = []
+        area = []
+        iscrowd = []
+        valid = []
+        for ann in anno:
+            for i in inds:
+                bbox = ann['bboxes'][i]
+                areas = ann['areas'][i]
+                segm = ann['segmentations'][i]
+                clas = ann["category_id"]
+                # for empty boxes
+                if bbox is None:
+                    bbox = [0, 0, 0, 0]
+                    areas = 0
+                    clas = 0
+                    valid.append(0)
+                else:
+                    valid.append(1)
+                crowd = ann["iscrowd"] if "iscrowd" in ann else 0
+                boxes.append(bbox)
+                area.append(areas)
+                segmentations.append(segm)
+                classes.append(clas)
+                iscrowd.append(crowd)
+        # guard against no boxes via resizing
+        boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
+        boxes[:, 2:] += boxes[:, :2]
+        boxes[:, 0::2].clamp_(min=0, max=w)
+        boxes[:, 1::2].clamp_(min=0, max=h)
+        classes = torch.tensor(classes, dtype=torch.int64)
+
+        target = {}
+        target["boxes"] = boxes
+        target["labels"] = classes
+        if self.return_masks:
+            masks = convert_coco_poly_to_mask(segmentations, h, w)
+            target["masks"] = masks
+
+        # for conversion to coco api
+        target["valid"] = torch.tensor(valid)
+        target["area"] = torch.tensor(area)
+        target["iscrowd"] = torch.tensor(iscrowd)
+        target["orig_size"] = torch.as_tensor([int(h), int(w)])
+        target["size"] = torch.as_tensor([int(h), int(w)])
+
         if self._transforms is not None:
             img, target = self._transforms(img, target)
-        return torch.cat(img,dim=0), target
+        return torch.cat(img, dim=0), target
 
 
 def convert_coco_poly_to_mask(segmentations, height, width):
@@ -66,7 +145,8 @@ def convert_coco_poly_to_mask(segmentations, height, width):
         if not polygons:
             mask = torch.zeros((height,width), dtype=torch.uint8)
         else:
-            rles = coco_mask.frPyObjects(polygons, height, width)
+            # rles = coco_mask.frPyObjects(polygons, height, width)
+            rles = polygons
             mask = coco_mask.decode(rles)
             if len(mask.shape) < 3:
                 mask = mask[..., None]
@@ -135,14 +215,14 @@ class ConvertCocoPolysToMask(object):
         target["image_id"] = image_id
 
         # for conversion to coco api
-        area = torch.tensor(area) 
+        area = torch.tensor(area)
         iscrowd = torch.tensor(iscrowd)
         target["valid"] = torch.tensor(valid)
         target["area"] = area
         target["iscrowd"] = iscrowd
         target["orig_size"] = torch.as_tensor([int(h), int(w)])
         target["size"] = torch.as_tensor([int(h), int(w)])
-        return  target
+        return target
 
 
 def make_coco_transforms(image_set):
@@ -163,8 +243,8 @@ def make_coco_transforms(image_set):
                      T.RandomResize([400, 500, 600]),
                      T.RandomSizeCrop(384, 600),
                      # To suit the GPU memory the scale might be different
-                     T.RandomResize([300], max_size=540),#for r50
-                     #T.RandomResize([280], max_size=504),#for r101
+                     # T.RandomResize([300], max_size=540),#for r50
+                     T.RandomResize([280], max_size=504),#for r101
             ]),
             normalize,
         ])
@@ -182,9 +262,12 @@ def build(image_set, args):
     root = Path(args.ytvos_path)
     assert root.exists(), f'provided YTVOS path {root} does not exist'
     mode = 'instances'
+    # PATHS = {
+    #     "train": (root / "train/JPEGImages", root / "annotations" / f'{mode}_train_sub.json'),
+    #     "val": (root / "valid/JPEGImages", root / "annotations" / f'{mode}_val_sub.json'),
+    # }
     PATHS = {
-        "train": (root / "train/JPEGImages", root / "annotations" / f'{mode}_train_sub.json'),
-        "val": (root / "valid/JPEGImages", root / "annotations" / f'{mode}_val_sub.json'),
+        "train": (root / "JPEGImages", root / f'{mode}_train.json'),
     }
     img_folder, ann_file = PATHS[image_set]
     dataset = YTVOSDataset(img_folder, ann_file, transforms=make_coco_transforms(image_set), return_masks=args.masks, num_frames = args.num_frames)
