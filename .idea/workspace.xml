@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="660a2e72-099c-4b97-bd0d-f8d5776cba75" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/VisTR.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/VisTR.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/infer.py" beforeDir="false" afterPath="$PROJECT_DIR$/infer.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1s9DFkX7c5Ax500tVoBPsQrgbOx" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="660a2e72-099c-4b97-bd0d-f8d5776cba75" name="Default Changelist" comment="" />
+      <created>1620275809294</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1620275809294</updated>
+      <workItem from="1620275811145" duration="5303000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="624" y="241" key="#Deployment" timestamp="1620275983617">
+      <screen x="0" y="0" width="2048" height="1152" />
+    </state>
+    <state x="624" y="241" key="#Deployment/0.0.2048.1152@0.0.2048.1152" timestamp="1620275983617" />
+    <state x="525" y="215" key="SettingsEditor" timestamp="1620276070130">
+      <screen x="0" y="0" width="2048" height="1152" />
+    </state>
+    <state x="525" y="215" key="SettingsEditor/0.0.2048.1152@0.0.2048.1152" timestamp="1620276070130" />
+    <state x="812" y="497" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1620455015734">
+      <screen x="0" y="0" width="2048" height="1152" />
+    </state>
+    <state x="812" y="497" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.0.2048.1152@0.0.2048.1152" timestamp="1620455015734" />
+    <state x="809" y="459" key="com.jetbrains.plugins.remotesdk.ui.RemoteMappingsConfiguration" timestamp="1620275949542">
+      <screen x="0" y="0" width="2048" height="1152" />
+    </state>
+    <state x="809" y="459" key="com.jetbrains.plugins.remotesdk.ui.RemoteMappingsConfiguration/0.0.2048.1152@0.0.2048.1152" timestamp="1620275949542" />
+    <state x="930" y="314" width="344" height="525" key="ftp.server.browser" timestamp="1620276051138">
+      <screen x="0" y="0" width="2048" height="1152" />
+    </state>
+    <state x="930" y="314" width="344" height="525" key="ftp.server.browser/0.0.2048.1152@0.0.2048.1152" timestamp="1620276051138" />
+  </component>
+</project>
