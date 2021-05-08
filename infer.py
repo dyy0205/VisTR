@@ -25,8 +25,18 @@ import tqdm
 import json
 from scipy.optimize import linear_sum_assignment
 import pycocotools.mask as mask_util
+import cv2
 
-# torch.backends.cudnn.enabled = False
+from net.lwef4_softlabel_b3_tc import LWef as RefineNet
+refine_ckpt_path = './refine_060.ckpt'
+refine_ckpt = torch.load(refine_ckpt_path)
+refine_model = RefineNet(2, arch='tf_efficientnet_b3', pretrained=False)
+refine_model.load_state_dict(refine_ckpt['state_dict'], strict=True)
+refine_model.cuda().eval()
+
+BBOX_SCALE = 1.2
+REFINE_SHAPE = (384, 384)
+palette = Image.open('/versa/dataset/TIANCHI2021/PreRoundData/Annotations/606396/00001.png').getpalette()
 
 
 
@@ -157,7 +167,6 @@ def split_func(listTemp, n):
         yield listTemp[i:i + n]
 
 
-'cpu'
 def main(args):
     device = torch.device(args.device)
     print('Using device: ', device)
@@ -194,10 +203,6 @@ def main(args):
                     clip_names = clip_names[:num_frames]
                 else:
                     clip_names = file_names[:num_frames]
-                if len(clip_names) == 0:
-                    continue
-                if len(clip_names) < num_frames:
-                    clip_names.extend(file_names[:num_frames - len(clip_names)])
                 for k in range(num_frames):
                     im = Image.open(os.path.join(folder, videos[i], clip_names[k]))
                     img_set.append(transform(im).unsqueeze(0).to(device))
@@ -208,7 +213,6 @@ def main(args):
                 # end of model inference
                 logits, boxes, masks = outputs['pred_logits'].softmax(-1)[0, :, :-1], outputs['pred_boxes'][0], \
                                        outputs['pred_masks'][0]
-                print(logits.shape, boxes.shape, masks.shape)
                 pred_masks = F.interpolate(masks.reshape(num_frames, num_ins, masks.shape[-2], masks.shape[-1]),
                                            (im.size[1], im.size[0]), mode="bilinear", align_corners=False).sigmoid().cpu().detach().numpy() > 0.5
                 pred_logits = logits.reshape(num_frames, num_ins, logits.shape[-1]).cpu().detach().numpy()
@@ -218,6 +222,8 @@ def main(args):
 
                 for n in range(length):
                     img_array = raw_img[n]
+                    h0, w0 = img_array.shape[:2]
+                    blend_mask = np.zeros((h0, w0), dtype=np.uint8)
                     for m in range(num_ins):
                         if pred_masks[:, m].max() == 0:
                             continue
@@ -225,15 +231,49 @@ def main(args):
                         #     continue
                         if pred_scores[n, m] > 0.1:
                             mask = (pred_masks[n, m]).astype(np.uint8)
+
+                            x, y, w, h = cv2.boundingRect(mask)
+                            ori_x = x - w * (BBOX_SCALE - 1) / 2
+                            ori_y = y - h * (BBOX_SCALE - 1) / 2
+                            leftOffset = int(min(ori_x, 0))
+                            topOffset = int(min(ori_y, 0))
+                            x = int(ori_x - leftOffset)
+                            y = int(ori_y - topOffset)
+                            w = int(min(w0 - x, BBOX_SCALE * w))
+                            h = int(min(h0 - y, BBOX_SCALE * h))
+
+                            img_crop = img_array[y:y + h, x:x + w, :]
+                            mask_crop = mask[y:y + h, x:x + w]
+                            img_x = cv2.resize(img_crop, REFINE_SHAPE, cv2.INTER_LINEAR)
+                            mask_x = cv2.resize(mask_crop, REFINE_SHAPE, cv2.INTER_NEAREST)
+                            input_x = np.concatenate([img_x / 255., mask_x[:, :, np.newaxis]], axis=2)
+                            input_x = torch.from_numpy(input_x).permute(2, 0, 1).unsqueeze(0).float()
+                            pred = refine_model(input_x.cuda())
+                            pred = pred.squeeze().detach().cpu().numpy()
+                            pred = cv2.resize(pred, (w, h), cv2.INTER_NEAREST)
+
+                            mask_ = np.zeros_like(mask)
+                            mask_[y:y + h, x:x + w] = pred
+
+                            mask = mask_
+
                             img_array[mask == 1] = img_array[mask == 1] * 0.5 + np.array(COLORS[m]) * 255 * 0.5
+
+                            mask[mask == 1] = m + 1
+                            blend_mask += mask
+                            blend_mask[blend_mask > (m + 1)] = m + 1
 
                     blend_image = np.uint8(img_array)
                     blend_image = Image.fromarray(blend_image)
+
+                    blend_mask = Image.fromarray(blend_mask)
+                    blend_mask.putpalette(palette)
 
                     save_image_dir = f'./result/{videos[i]}/'
                     if not os.path.exists(save_image_dir):
                         os.makedirs(save_image_dir)
                     blend_image.save(f'{save_image_dir}/{file_names[n]}')
+                    blend_mask.save(f'{save_image_dir}/{file_names[n]}'.replace('.jpg', '.png'))
 
 
 if __name__ == '__main__':
